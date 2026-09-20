@@ -1,0 +1,38 @@
+name: Auto Sync Fork
+
+on:
+  schedule:
+    # UTC 20:00 = 北京时间次日 04:00
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your fork
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Sync with upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git remote add upstream https://github.com/yoimiya-kokomi/miao-plugin.git
+          git fetch upstream --prune
+
+          git checkout master
+          
+          # 关键修改：把 reset --hard 改成 merge 合并
+          git merge upstream/master --no-edit
+          git push origin master
